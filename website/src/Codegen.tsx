@@ -75,6 +75,7 @@ export function Codegen({state, page, setPage, setState} : {
     const [jsonError, setJsonError] = useState<string | null>(null);
     const isFocused = useRef(false);
     const parseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isPaste = useRef(false);
 
     useEffect(() => {
         if (!isFocused.current) {
@@ -86,6 +87,8 @@ export function Codegen({state, page, setPage, setState} : {
         const text = e.target.value;
         setEditText(text);
         if (parseTimeout.current) clearTimeout(parseTimeout.current);
+        const delay = isPaste.current ? 0 : 300;
+        isPaste.current = false;
         parseTimeout.current = setTimeout(() => {
             try {
                 const parsed = JSON.parse(text);
@@ -98,7 +101,11 @@ export function Codegen({state, page, setPage, setState} : {
             } catch (err) {
                 setJsonError((err as Error).message);
             }
-        }, 300);
+        }, delay);
+    };
+
+    const handlePaste = () => {
+        isPaste.current = true;
     };
 
     const [copied, setCopied] = useState(false);
@@ -146,6 +153,7 @@ export function Codegen({state, page, setPage, setState} : {
                             className={Styles.editor}
                             value={editText}
                             onChange={handleJsonChange}
+                            onPaste={handlePaste}
                             onFocus={() => { isFocused.current = true; }}
                             onBlur={() => { isFocused.current = false; }}
                             spellCheck={false}
