@@ -1,0 +1,5 @@
+{
+    "buildCommand": "yarn workspace components-sdk build && yarn workspace website build",
+    "outputDirectory": "website/dist",
+    "installCommand": "yarn install"
+}
