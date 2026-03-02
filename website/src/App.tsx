@@ -203,7 +203,7 @@ function App() {
                                 }}>{JSON.stringify(response, undefined, 4)}</div>}
 
 
-            <Codegen state={state} page={page} setPage={setPage} />
+            <Codegen state={state} page={page} setPage={setPage} setState={(value) => dispatch(actions.setKey({key: ['data'], value}))} />
 
             <div className={Styles.footer}>
                 <div className={Styles.langs}>
