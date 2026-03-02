@@ -2,7 +2,7 @@ import { CodeBlock, dracula } from 'react-code-blocks';
 import Styles from './App.module.css';
 import Select, { Props } from 'react-select';
 import { select_styles } from './Select';
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { libs } from '../libs.config';
 import { ClientFunction, IncludeCallback } from 'ejs';
 import { RootState } from './state';
@@ -35,10 +35,11 @@ type selectOption = {
     value: string;
 }
 
-export function Codegen({state, page, setPage} : {
+export function Codegen({state, page, setPage, setState} : {
     state: Component[],
     page: string,
-    setPage: (page: string) => void
+    setPage: (page: string) => void,
+    setState: (value: Component[]) => void
 }) {
 
     // In this scope of code null === JSON, this may change in the future
@@ -67,6 +68,38 @@ export function Codegen({state, page, setPage} : {
     } else {
         data = JSON.stringify(state, undefined, 4)
     }
+
+    const isJsonMode = !Object.keys(libComponents).includes(libSelected);
+
+    const [editText, setEditText] = useState<string>(data);
+    const [jsonError, setJsonError] = useState<string | null>(null);
+    const isFocused = useRef(false);
+    const parseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (!isFocused.current) {
+            setEditText(JSON.stringify(state, undefined, 4));
+        }
+    }, [state]);
+
+    const handleJsonChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+        const text = e.target.value;
+        setEditText(text);
+        if (parseTimeout.current) clearTimeout(parseTimeout.current);
+        parseTimeout.current = setTimeout(() => {
+            try {
+                const parsed = JSON.parse(text);
+                if (Array.isArray(parsed)) {
+                    setState(parsed);
+                    setJsonError(null);
+                } else {
+                    setJsonError('Root value must be an array');
+                }
+            } catch (err) {
+                setJsonError((err as Error).message);
+            }
+        }, 300);
+    };
 
     const [copied, setCopied] = useState(false);
 
@@ -107,7 +140,21 @@ export function Codegen({state, page, setPage} : {
             </div>
 
             <div className={Styles.data}>
-                <CodeBlock text={data} language={language} showLineNumbers={false} theme={dracula} />
+                {isJsonMode ? (
+                    <>
+                        <textarea
+                            className={Styles.editor}
+                            value={editText}
+                            onChange={handleJsonChange}
+                            onFocus={() => { isFocused.current = true; }}
+                            onBlur={() => { isFocused.current = false; }}
+                            spellCheck={false}
+                        />
+                        {jsonError && <p className={Styles.jsonError}>{jsonError}</p>}
+                    </>
+                ) : (
+                    <CodeBlock text={data} language={language} showLineNumbers={false} theme={dracula} />
+                )}
             </div>
         </>
     );
